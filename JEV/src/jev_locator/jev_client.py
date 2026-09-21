@@ -1,22 +1,25 @@
 import concurrent.futures
 
-import requests
+from typesafe_sdk import Choice, TypeSafeClient
 
 from .config import config
 
 # Límite documentado del primitivo `choice` de JEV: máximo 255 opciones por llamada.
+# El SDK no lo valida ni trocea por nosotros, así que el chunking sigue siendo manual.
 JEV_MAX_CHOICES = 255
 
+_client: TypeSafeClient | None = None
 
-def _call_systemone(state: str, questions: dict) -> dict:
-    headers = {
-        "Authorization": f"Bearer {config.JEV_API_KEY}",
-        "Content-Type": "application/json",
-    }
-    payload = {"state": state, "model": config.JEV_MODEL, "questions": questions}
-    response = requests.post(config.JEV_API_URL, json=payload, headers=headers, timeout=30)
-    response.raise_for_status()
-    return response.json()
+
+def _get_client() -> TypeSafeClient:
+    global _client
+    if _client is None:
+        _client = TypeSafeClient(
+            api_key=config.JEV_API_KEY,
+            base_url=config.JEV_API_URL,
+            model=config.JEV_MODEL,
+        )
+    return _client
 
 
 def classify_choice(state: str, instructions: str, options: dict[str, str]) -> dict:
@@ -28,24 +31,21 @@ def classify_choice(state: str, instructions: str, options: dict[str, str]) -> d
     opciones de su propio bloque), así que la comparación entre bloques es aproximada.
 
     Devuelve {"probabilities": {...}, "usage": {...agregado...}, "calls": [...por llamada...]}.
-    `calls` trae un elemento por cada request HTTP real hecho a JEV, con sus propios
-    input_tokens/output_tokens/options_count — así se ve el detalle, no solo el total.
+    `calls` trae un elemento por cada request real hecho a JEV (reintentos automáticos del
+    SDK ante 429/5xx/timeouts no cuentan como llamadas nuevas), con su propio
+    input_tokens/output_tokens/options_count.
     """
+    client = _get_client()
     items = list(options.items())
     chunks = [items[i : i + JEV_MAX_CHOICES] for i in range(0, len(items), JEV_MAX_CHOICES)]
 
-    def run_chunk(chunk: list[tuple[str, str]]) -> tuple[dict[str, float], dict, int]:
-        response = _call_systemone(
+    def run_chunk(chunk: list[tuple[str, str]]) -> tuple[dict[str, float], object, int]:
+        response = client.system_one(
             state=state,
-            questions={
-                "match": {
-                    "type": "choice",
-                    "instructions": instructions,
-                    "criteria": dict(chunk),
-                }
-            },
+            questions={"match": Choice(instructions=instructions, criteria=dict(chunk))},
         )
-        return response["answers"]["match"]["probabilities"], response.get("usage", {}), len(chunk)
+        answer = response.choices["match"]
+        return answer.probabilities, response.usage, len(chunk)
 
     if len(chunks) == 1:
         chunk_results = [run_chunk(chunks[0])]
@@ -60,8 +60,8 @@ def classify_choice(state: str, instructions: str, options: dict[str, str]) -> d
         probabilities.update(probs)
         calls.append(
             {
-                "input_tokens": usage.get("input_tokens", 0),
-                "output_tokens": usage.get("output_tokens", 0),
+                "input_tokens": usage.input_tokens or 0,
+                "output_tokens": usage.output_tokens or 0,
                 "options_count": options_count,
             }
         )

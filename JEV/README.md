@@ -6,9 +6,10 @@ tan bien encaja cada uno con la descripción.
 
 - **Datos de referencia**: [api-colombia.com](https://api-colombia.com/) (33 departamentos,
   incluyendo Bogotá D.C., y ~1123 municipios).
-- **Motor de clasificación**: JEV
-  (TypeSafe.ai System One Model), usando el primitivo `choice` para obtener una
-  probabilidad calibrada por cada opción.
+- **Motor de clasificación**: JEV (TypeSafe.ai System One Model), vía el SDK oficial
+  [`typesafe-sdk`](https://docs.typesafe.ai/sdk/python), usando el primitivo `choice`
+  para obtener una probabilidad calibrada por cada opción. El SDK aporta reintentos
+  automáticos con backoff ante 429/5xx/timeouts.
 - **Backend**: Python 3.12 + Flask, gestionado con `uv`.
 
 ## Cómo funciona
@@ -42,8 +43,8 @@ solo tienes que completarlas:
 
 | Variable | Descripción |
 |---|---|
-| `JEV_API_KEY` | API key (Bearer) de JEV/TypeSafe.ai. **Requerida.** |
-| `JEV_API_URL` | Endpoint de JEV. Default: `https://api.typesafe.ai/v1/systemone`. |
+| `JEV_API_KEY` | API key de JEV/TypeSafe.ai (la usa `typesafe-sdk`). **Requerida.** |
+| `JEV_API_URL` | URL base de JEV, sin path (el SDK arma internamente `/v1/systemone`). Default: `https://api.typesafe.ai`. |
 | `JEV_MODEL` | Modelo a usar en cada request. Default: `jev-latest`. |
 | `API_COLOMBIA_BASE_URL` | Base URL de api-colombia.com. Default: `https://api-colombia.com/api/v1`. |
 | `FLASK_SECRET_KEY` | Clave para firmar sesión/flash messages de Flask. Opcional en local (hay un default de desarrollo en `config.py`); en producción debe ser un valor aleatorio y secreto. |

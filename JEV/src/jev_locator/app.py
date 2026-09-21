@@ -1,5 +1,6 @@
 import requests
 from flask import Flask, flash, render_template, request
+from typesafe_sdk import TypeSafeError
 
 from . import classifier
 from .config import ConfigError, config
@@ -25,7 +26,7 @@ def create_app() -> Flask:
         except ConfigError as exc:
             flash(str(exc), "error")
             return render_template("index.html", text=text), 500
-        except requests.exceptions.RequestException as exc:
+        except (requests.exceptions.RequestException, TypeSafeError) as exc:
             flash(f"Error consultando una API externa: {exc}", "error")
             return render_template("index.html", text=text), 502
 

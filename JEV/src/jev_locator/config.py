@@ -12,12 +12,13 @@ class ConfigError(RuntimeError):
 def _require(name: str) -> str:
     value = os.environ.get(name, "").strip()
     if not value:
-        raise ConfigError(f"Falta configurar la variable de entorno {name} (ver .env.example)")
+        raise ConfigError(f"Falta configurar la variable de entorno {name} (ver README.md)")
     return value
 
 
 class Config:
-    JEV_API_URL = os.environ.get("JEV_API_URL", "https://api.typesafe.ai/v1/systemone")
+    # URL base de JEV (el SDK arma internamente el path /v1/systemone), NO el endpoint completo.
+    JEV_API_URL = os.environ.get("JEV_API_URL", "https://api.typesafe.ai")
     JEV_MODEL = os.environ.get("JEV_MODEL", "jev-latest")
     API_COLOMBIA_BASE_URL = os.environ.get(
         "API_COLOMBIA_BASE_URL", "https://api-colombia.com/api/v1"
