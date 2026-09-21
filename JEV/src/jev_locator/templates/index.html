@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}JEV Locator{% endblock %}
+
+{% block content %}
+  <h1>¿Qué lugar de Colombia describes?</h1>
+  <p class="subtitle">
+    Escribe un texto libre sobre un lugar (paisaje, clima, cultura, comida, ubicación...) y
+    lo compararemos contra los 33 departamentos y ~1123 municipios de Colombia usando JEV.
+  </p>
+
+  <form method="post" action="{{ url_for('classify') }}" class="text-form">
+    <textarea
+      name="text"
+      rows="6"
+      placeholder="Ej: Tierra fría en la cordillera, famosa por sus flores y su feria en agosto..."
+      required
+    >{{ text or "" }}</textarea>
+    <button type="submit">Clasificar lugar</button>
+  </form>
+{% endblock %}

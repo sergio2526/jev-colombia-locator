@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Resultado — JEV Locator{% endblock %}
+
+{% block content %}
+  <a href="{{ url_for('index') }}" class="back-link">&larr; Probar otro texto</a>
+
+  <blockquote class="submitted-text">{{ text }}</blockquote>
+
+  <section class="top-picks">
+    {% if result.top_department %}
+      <div class="top-card">
+        <span class="top-card-label">Departamento con mejor encaje</span>
+        <span class="top-card-name">{{ result.top_department.name }}</span>
+        <span class="top-card-score">{{ "%.1f"|format(result.top_department.score * 100) }}%</span>
+      </div>
+    {% endif %}
+
+    {% if result.top_city %}
+      <div class="top-card">
+        <span class="top-card-label">Municipio con mejor encaje</span>
+        <span class="top-card-name">{{ result.top_city.name }}</span>
+        <span class="top-card-sub">{{ result.top_city.department }}</span>
+        <span class="top-card-score">{{ "%.1f"|format(result.top_city.score * 100) }}%</span>
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="usage-section">
+    <h2>Uso de JEV en esta clasificación</h2>
+    <div class="usage-grid">
+      <div class="usage-card">
+        <span class="usage-label">Llamadas a JEV</span>
+        <span class="usage-value">{{ result.usage.total.calls }}</span>
+      </div>
+      <div class="usage-card">
+        <span class="usage-label">Tokens de entrada</span>
+        <span class="usage-value">{{ "{:,}".format(result.usage.total.input_tokens) }}</span>
+      </div>
+      <div class="usage-card">
+        <span class="usage-label">Tokens de salida</span>
+        <span class="usage-value">{{ "{:,}".format(result.usage.total.output_tokens) }}</span>
+      </div>
+    </div>
+    <p class="hint">
+      Una fila por cada llamada HTTP real hecha a JEV en esta clasificación (1 para
+      departamentos + una por cada bloque de ≤255 municipios).
+    </p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Llamada</th><th>Opciones</th><th>Tokens entrada</th><th>Tokens salida</th></tr>
+        </thead>
+        <tbody>
+          {% for call in result.usage.calls %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ call.stage }}</td>
+              <td>{{ call.options_count }}</td>
+              <td>{{ "{:,}".format(call.input_tokens) }}</td>
+              <td>{{ "{:,}".format(call.output_tokens) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Score por departamento ({{ result.departments|length }})</h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Departamento</th><th>Score</th></tr>
+        </thead>
+        <tbody>
+          {% for dept in result.departments %}
+            <tr class="{{ 'is-top' if loop.first else '' }}">
+              <td>{{ loop.index }}</td>
+              <td>{{ dept.name }}</td>
+              <td>{{ "%.1f"|format(dept.score * 100) }}%</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Score por municipio ({{ result.cities|length }})</h2>
+    <p class="hint">
+      Comparación a nivel nacional: como JEV admite máximo 255 opciones por llamada, los
+      ~1123 municipios se evaluaron en bloques independientes, así que el score entre
+      municipios de bloques distintos es aproximado.
+    </p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Municipio</th><th>Departamento</th><th>Score</th></tr>
+        </thead>
+        <tbody>
+          {% for city in result.cities %}
+            <tr class="{{ 'is-top' if loop.first else '' }}">
+              <td>{{ loop.index }}</td>
+              <td>{{ city.name }}</td>
+              <td>{{ city.department }}</td>
+              <td>{{ "%.1f"|format(city.score * 100) }}%</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}
